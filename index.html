@@ -88,7 +88,7 @@
             user_name: 'arthur-kay',
             type: 'cartodb',
             sublayers: [{
-              sql: query,
+              sql: 'SELECT * FROM richmond_swm_data',
               cartocss: style
             }]
           }).addTo(map)
