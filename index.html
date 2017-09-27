@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CARTO.js + Highchart.js</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+    <link rel="shortcut icon" href="http://cartodb.com/assets/favicon.ico" />
+
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+
+
+    <style>
+        header {
+          position: absolute;
+  width: 100%;
+  border-bottom: 5px solid grey;
+  border-top: 5px solid grey;
+  height: 100px;
+
+}
+
+.page_title {
+  position: absolute;
+  border-bottom: 5px solid grey;
+  border-top: 5px solid grey;
+  text-align: center;
+  width: 95%;
+  margin-top: 10px;
+  background-color: lightcyan;
+   margin-left: 50px;
+   margin-right: 50px;
+    font-size: 20px;
+    font-family: BrandonGrotesque-Black, "futura-pt-1","futura-pt-2", Verdana, sans-serif;
+    z-index: 3;
+}
+      html, body, #map { 
+        position: relative;
+        height: 100%; 
+        padding: 0; 
+        margin: 0 
+      }
+
+      #container{
+        position: absolute;
+        bottom: 20px;
+        left: 40%;
+        height: 25%;
+        width: 25%;
+      }
+
+
+
+
+    </style>
+
+    <link rel="stylesheet" href="https://cartodb-libs.global.ssl.fastly.net/cartodb.js/v3/3.15/themes/css/cartodb.css" />
+
+      <div class="page_title">
+      <h1 ><center>Richmond Landscape Composition</center></h1>
+    </div>
+
+  </head>
+  <body>
+
+    <div id="map"></div>
+
+    <div id="container"></div>
+
+    <div class='cartodb-legend category'>
+      <div class="legend-title" style="color:#284a59">Legend</div>
+        <ul>
+          <li><div class="bullet" style="background-color:#a6f5a6"></div>Lawn</li>
+          <li><div class="bullet" style="background-color:#006400"></div>Forest</li>
+          <li><div class="bullet" style="background-color:#d3d0d6"></div>Impervious</li>
+        </ul>
+      </div>
+
+    <script type="text/sql" id="query">
+      SELECT * FROM richmond_swm_data
+    </script>
+
+    <script type="text/cartocss" id="style">
+    #layer {
+        polygon-fill: red; 
+        polygon-opacity: 0.0;
+        line-color: #FFF;
+        line-width: 0.0;
+        line-opacity: 1;
+      }
+    </script>
+
+    <!-- include cartodb.js library -->
+    <script src="https://cartodb-libs.global.ssl.fastly.net/cartodb.js/v3/3.15/cartodb.js"></script>
+    
+    <script type="text/javascript">
+
+
+
+
+
+      //main code 
+      function main() {
+
+        var query = $("#query").text();
+            style = $("#style").text();
+
+        // create map object
+        var map = L.map('map', { 
+        zoomControl: true,
+          center: [37.53, -77.45],
+          zoom: 12,  
+          minZoom: 10,
+          maxZoom: 19
+        });
+
+          // add basemap
+          L.tileLayer('https://s3.amazonaws.com/terramap.us/tiles2/{z}/{x}/{y}.png', {attribution: '<a href="https://www.linkedin.com/in/arthur-kay/">Arthur Kay</a>'}).addTo(map);
+
+          // add layer
+          cartodb.createLayer(map, {
+            user_name: 'arthur-kay',
+            type: 'cartodb',
+            sublayers: [{
+              sql: query,
+              cartocss: style
+            }]
+          }).addTo(map)
+          .done(function(layer){
+
+            var sublayer = layer.getSubLayer(0).on('mouseover', function(){
+        $('#map').css('cursor', 'crosshair', 'important'); })
+             .on('featureOut', function(){
+        $('#map').css('cursor', '-webkit-grab', 'important');
+    })
+
+            sublayer.setInteractivity("address, lawnacre, canopyacre, timperv");
+            sublayer.setInteraction(true);
+        
+
+            // get data from feature selected
+            sublayer.on('featureClick', function(e, latlng, pos, data) {
+               // data1 stores the cartodb_id value of the selected polygon
+            
+
+            var address = data.address,
+                lawnacre = data.lawnacre,
+                canopyacre = data.canopyacre,
+                timperv = data.timperv,
+                data1 = data.cartodb_id;
+
+                    // change zoom level to zoom level 13, when user click on the CARTO geometries
+            map.setView(latlng,16,true); 
+
+             // use SQL API to extract the attribute values from the selected polygons
+             var sql = new cartodb.SQL({ user: 'arthur-kay', format: 'geojson' });
+             var polygon
+
+                // select the attribute tables to extract from CartoDB table
+              sql.execute("SELECT ST_asSimplify(the_geom, 0.1)) as the_geom FROM richmond_swm_data WHERE cartodb_id IN (" + data1 + ")")
+                .done(function(data){
+
+                  var the_geom = data.the_geom;
+                  polygon = L.geoJson(JSON.parse(the_geom),{
+                                    style:{
+                                      color: "#000", // color of stroke line
+                                      weight: 5, // width of stroke line
+                                      fillColor: "blue", // define color of polygon
+                                      fill: true // set polygon
+                                    }
+
+                    });
+                // add leaflet polygon on the map
+                  map.addLayer(polygon);
+
+        });  
+
+          
+
+
+            // Highcharts section
+            Highcharts.chart('container', {
+                chart: {
+                    type: 'bar',
+                    borderWidth: 5,
+                  
+                },
+                title: {
+                    text: 'Results'
+                },
+             
+                xAxis: {
+                    categories: [address],
+                    title: {
+                        text: null
+                    }
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: 'Acres',
+                        align: 'high'
+                    },
+                    labels: {
+                        overflow: 'justify'
+                    }
+                },
+                tooltip: {
+                    valueSuffix: ''
+                },
+                plotOptions: {
+                    bar: {
+                        dataLabels: {
+                            enabled: true
+                        }
+                    }
+                },
+                legend: {
+                    layout: 'verticalAlign',
+                    align: 'left',
+                    verticalAlign: 'bottom',
+                    x: 0,
+                    y: 0,
+                    floating: true,
+                    borderWidth: 0,
+                    backgroundColor: ((Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'),
+                    shadow: false
+                },
+                credits: {
+                    enabled: false
+                },
+                series: [{
+                    name: "Lawn",
+                    data: [lawnacre],
+                    color: '#a6f5a6'                    
+                }, {
+                    name: "Canopy",
+                    data: [canopyacre],
+                    color: '#006400'
+                },
+
+              {    name: "Impervious",
+                    data: [timperv],
+                    color: '#d3d0d6'
+                }
+
+                ]
+              });
+
+              });
+
+          });
+
+      }
+
+      window.onload = main;
+      
+    </script>
+  </body>
+</html>
