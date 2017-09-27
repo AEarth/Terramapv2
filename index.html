@@ -1,41 +1,16 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Landscape Composition</title>
+    <title>CARTO.js + Highchart.js</title>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
     <link rel="shortcut icon" href="http://cartodb.com/assets/favicon.ico" />
 
-    <script src="https://code.highcharts.com/highcharts.src.js"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
 
-
     <style>
-        header {
-          position: absolute;
-  width: 100%;
-  border-bottom: 5px solid grey;
-  border-top: 5px solid grey;
-  height: 100px;
-
-}
-
-.page_title {
-  position: absolute;
-  border-bottom: 5px solid grey;
-  border-top: 5px solid grey;
-  text-align: center;
-  width: 95%;
-  margin-top: 10px;
-  background-color: lightcyan;
-   margin-left: 50px;
-   margin-right: 50px;
-    font-size: 20px;
-    font-family: BrandonGrotesque-Black, "futura-pt-1","futura-pt-2", Verdana, sans-serif;
-    z-index: 3;
-}
       html, body, #map { 
-        position: relative;
         height: 100%; 
         padding: 0; 
         margin: 0 
@@ -43,23 +18,12 @@
 
       #container{
         position: absolute;
-        bottom: 20px;
-        left: 40%;
-        height: 25%;
-        width: 25%;
+        top: 20px;
+        left: 20px;
       }
-
-
-
-
     </style>
 
     <link rel="stylesheet" href="https://cartodb-libs.global.ssl.fastly.net/cartodb.js/v3/3.15/themes/css/cartodb.css" />
-
-      <div class="page_title">
-      <h1 ><center>Richmond Landscape Composition</center></h1>
-    </div>
-
   </head>
   <body>
 
@@ -68,11 +32,18 @@
     <div id="container"></div>
 
     <div class='cartodb-legend category'>
-      <div class="legend-title" style="color:#284a59">Legend</div>
+      <div class="legend-title" style="color:#284a59">Partidos</div>
         <ul>
-          <li><div class="bullet" style="background-color:#a6f5a6"></div>Lawn</li>
-          <li><div class="bullet" style="background-color:#006400"></div>Forest</li>
-          <li><div class="bullet" style="background-color:#d3d0d6"></div>Impervious</li>
+          <li><div class="bullet" style="background-color:#FF9900"></div>C's</li>
+          <li><div class="bullet" style="background-color:#FFCC00"></div>DL</li>
+          <li><div class="bullet" style="background-color:#B2DF8A"></div>EAJ-PNV</li>
+          <li><div class="bullet" style="background-color:#33A02C"></div>EH Bildu</li>
+          <li><div class="bullet" style="background-color:#7B00B4"></div>En Comú</li>
+          <li><div class="bullet" style="background-color:#E31A1C"></div>ERC-CATSI</li>
+          <li><div class="bullet" style="background-color:#3B007F"></div>Podemos</li>
+          <li><div class="bullet" style="background-color:#3E7BB6"></div>PP</li>
+          <li><div class="bullet" style="background-color:#F84F40"></div>PSOE</li>
+          <li><div class="bullet" style="background-color:#A53ED5"></div>Podemos-Compromís</li>
         </ul>
       </div>
 
@@ -83,9 +54,9 @@
     <script type="text/cartocss" id="style">
     #layer {
         polygon-fill: red; 
-        polygon-opacity: 0.0;
+        polygon-opacity: 0.7;
         line-color: #FFF;
-        line-width: 0.0;
+        line-width: 0.5;
         line-opacity: 1;
       }
     </script>
@@ -94,12 +65,7 @@
     <script src="https://cartodb-libs.global.ssl.fastly.net/cartodb.js/v3/3.15/cartodb.js"></script>
     
     <script type="text/javascript">
-
-
-
-
-
-      //main code 
+      
       function main() {
 
         var query = $("#query").text();
@@ -115,7 +81,7 @@
         });
 
           // add basemap
-          L.tileLayer('https://s3.amazonaws.com/terramap.us/tiles2/{z}/{x}/{y}.png', {attribution: '<a href="https://www.linkedin.com/in/arthur-kay/">Arthur Kay</a>'}).addTo(map);
+          L.tileLayer('https://s3.amazonaws.com/terramap.us/tiles2/{z}/{x}/{y}.png', {attribution: '&copy; <a href="https://www.linkedin.com/in/arthur-kay/">Arthur Kay</a>, &copy; <a href="http://cartodb.com/attributions">CARTO</a>'}).addTo(map);
 
           // add layer
           cartodb.createLayer(map, {
@@ -128,69 +94,31 @@
           }).addTo(map)
           .done(function(layer){
 
-            var sublayer = layer.getSubLayer(0).on('mouseover', function(){
-        $('#map').css('cursor', 'crosshair', 'important'); })
-             .on('featureOut', function(){
-        $('#map').css('cursor', '-webkit-grab', 'important');
-    })
+            var sublayer = layer.getSubLayer(0); 
 
-            sublayer.setInteractivity("address, lawnacre, canopyacre, timperv");
+            sublayer.setInteractivity("cartodb_id, lawnacre, canopyacre");
             sublayer.setInteraction(true);
-        
 
             // get data from feature selected
             sublayer.on('featureClick', function(e, latlng, pos, data) {
-               // data1 stores the cartodb_id value of the selected polygon
-            
 
-            var address = data.address,
+            var cartodb_id = data.cartodb_id,
                 lawnacre = data.lawnacre,
-                canopyacre = data.canopyacre,
-                timperv = data.timperv,
-                data1 = data.cartodb_id;
-
-                    // change zoom level to zoom level 13, when user click on the CARTO geometries
-            map.setView(latlng,16,true); 
-
-             // use SQL API to extract the attribute values from the selected polygons
-             var sql = new cartodb.SQL({ user: 'arthur-kay', format: 'geojson' });
-             var polygon
-
-                // select the attribute tables to extract from CartoDB table
-              sql.execute("SELECT ST_asSimplify(the_geom, 0.1)) as the_geom FROM richmond_swm_data WHERE cartodb_id IN (" + data1 + ")")
-                .done(function(data){
-
-                  var the_geom = data.the_geom;
-                  polygon = L.geoJson(JSON.parse(the_geom),{
-                                    style:{
-                                      color: "#000", // color of stroke line
-                                      weight: 5, // width of stroke line
-                                      fillColor: "blue", // define color of polygon
-                                      fill: true // set polygon
-                                    }
-
-                    });
-                // add leaflet polygon on the map
-                  map.addLayer(polygon);
-
-        });  
-
-          
-
+                canopyacre = data.canopyacre;
 
             // Highcharts section
             Highcharts.chart('container', {
                 chart: {
-                    type: 'bar',
-                    borderWidth: 5,
-                  
+                    type: 'bar'
                 },
                 title: {
-                    text: 'Results'
+                    text: 'Elecciones 2015'
                 },
-             
+                subtitle: {
+                    text: 'Source: <a href="http://www.ine.es/">INE</a>'
+                },
                 xAxis: {
-                    categories: [address],
+                    categories: [cartodb_id],
                     title: {
                         text: null
                     }
@@ -198,7 +126,7 @@
                 yAxis: {
                     min: 0,
                     title: {
-                        text: 'Acres',
+                        text: 'Porcentaje de votos / Edad Media',
                         align: 'high'
                     },
                     labels: {
@@ -216,35 +144,26 @@
                     }
                 },
                 legend: {
-                    layout: 'verticalAlign',
-                    align: 'left',
-                    verticalAlign: 'bottom',
-                    x: 0,
-                    y: 0,
+                    layout: 'vertical',
+                    align: 'right',
+                    verticalAlign: 'top',
+                    x: -40,
+                    y: 60,
                     floating: true,
-                    borderWidth: 0,
+                    borderWidth: 1,
                     backgroundColor: ((Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'),
-                    shadow: false
+                    shadow: true
                 },
                 credits: {
                     enabled: false
                 },
                 series: [{
-                    name: "Lawn",
-                    data: [lawnacre],
-                    color: '#a6f5a6'                    
+                    name: "Lawn Acreage",
+                    data: [lawnacre]
                 }, {
-                    name: "Canopy",
-                    data: [canopyacre],
-                    color: '#006400'
-                },
-
-              {    name: "Impervious",
-                    data: [timperv],
-                    color: '#d3d0d6'
-                }
-
-                ]
+                    name: "Canopy Acreage",
+                    data: [canopyacre]
+                }]
               });
 
               });
